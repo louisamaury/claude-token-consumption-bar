@@ -2,9 +2,9 @@
 
 A band above the Claude Code prompt that shows, at a glance, how much of your plan you have used:
 
-```
-5h ████▎      42% ↻2h13   7d █▊         18% ↻3d4h   Context ███▏       31% 62k/200k   ≈$1.84
-```
+![usage-bar in the Claude Code desktop app](assets/screenshot.png)
+
+In a terminal, the bars are drawn with block characters instead.
 
 - **5h**: the rolling five-hour window, percent used and time until it resets
 - **7d**: the weekly window, percent used and time until it resets
@@ -30,3 +30,13 @@ claude plugin install usage-bar --marketplace xendo3000/claude-token-consumption
 Answer `y` to add the marketplace, then pick the **user** scope so the band shows in every session.
 
 In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `xendo3000/claude-token-consumption-bar`, then **Add plugin**.
+
+## Uninstall
+
+From a shell:
+
+```
+claude plugin uninstall usage-bar
+```
+
+Or at the prompt of a Claude Code terminal session: `/plugin uninstall usage-bar`. To only hide the band without uninstalling, run `/usage-bar`.
