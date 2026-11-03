@@ -11,7 +11,7 @@ In a terminal, the bars are drawn with block characters instead.
 - **Context**: how full the current conversation's context window is
 - **≈$**: API-equivalent cost of the session (an estimate; a Pro/Max plan is not billed per request)
 
-Bars turn yellow at 70% and red at 90%. Run `/usage-bar` to hide or show the band; the choice is remembered. Rate-limit figures appear on a Claude subscription only, after the first reply of a session. Nothing is sent anywhere: the figures come from Claude Code itself.
+Bars turn yellow at 70% and red at 90%. Click a category to open its details under the band (pace of the 5h and 7d windows, what fills the context, cost of the last reply); click it again to close them. Run `/usage-bar` to hide or show the band; the choice is remembered. Rate-limit figures appear on a Claude subscription only; a new session starts from the last figures seen, until their window resets. Nothing is sent anywhere: the figures come from Claude Code itself.
 
 ## Install
 
