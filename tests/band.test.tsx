@@ -24,8 +24,14 @@ const engine = (on: any, store = new Map<string, unknown>(), register: any = () 
   return store
 }
 
-// Every word the band draws: Text children and Button labels.
-const words = async (ui: any) => [...(await ui.findAll({ type: 'Button' })), ...(await ui.findAll({ type: 'Text' }))].map((t: any) => t.text).join(' ')
+// Every word the band draws: Text children, Button labels and SVG alts.
+const words = async (ui: any) =>
+  [
+    ...(await ui.findAll({ type: 'Button' })).map((t: any) => t.text),
+    ...(await ui.findAll({ type: 'Text' })).map((t: any) => t.text),
+    // The desktop draws the details panel as one SVG: its alt carries the figures.
+    ...(await ui.findAll({ type: 'Svg' })).map((t: any) => t.props.alt),
+  ].join(' ')
 
 const texts = async ($: any) => {
   const ui = await $.ui.mount({ ...BAND, surface: 'terminal' })
@@ -107,4 +113,52 @@ test('after /clear the band is filled again without waiting for a reply', async 
   on('command.run', (_: any, e: any) => ({ text: '' }))
   await $.command.run({ command: 'clear', args: '' })
   expect(await texts($)).toContain('Context')
+})
+
+test('on the desktop the pill and colored figures stay, and a press anywhere on the category opens the details', async ($, on) => {
+  engine(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.session.measure({ context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: LIMITS, changed: ['context', 'rateLimits'] })
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  // Closed, each category draws its figures once, in the flow: they set its size.
+  const pills = await ui.findAll({ type: 'Svg' })
+  expect(pills.map((p: any) => p.props.alt)).toEqual(['5h 42%', '7d 13%', 'Context 0%'])
+  // 0% draws a blue track.
+  expect(String(pills[2].props.source)).toContain('#5769f7')
+  // The percentages keep their color; the context's token ratio is in the details only.
+  const pcts = (await ui.findAll({ type: 'Text', text: /^\d+%$/ })).map((t: any) => [t.text, t.props.color])
+  expect(pcts).toEqual([['42%', '#4eba65'], ['13%', '#4eba65'], ['0%', '#5769f7']])
+  expect(await words(ui)).not.toContain('/200k')
+  // The press target covers the category: a blank-labelled Button in an absolute Box filling it.
+  expect((await ui.find({ type: 'Button', key: 'open-five_hour' }))?.props.label).toMatch(/^ +$/)
+  await ui.press({ key: 'open-five_hour' })
+  expect(await words(ui)).toContain('at this pace')
+  await ui.unmount()
+})
+
+test('on the desktop the open category turns white and the details have the ponytail dividers', async ($, on) => {
+  engine(on)
+  await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
+  await $.session.measure({ context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: LIMITS, cost: { usd: 1.5 }, changed: ['context', 'rateLimits', 'cost'] })
+  const ui = await $.ui.mount({ ...BAND, surface: 'desktop' })
+  await ui.press({ key: 'open-five_hour' })
+  // Open, a white primary Button with the hover's own label lies under the figures: one shape for hover and selection.
+  const chip = await ui.find({ type: 'Button', key: 'chip-five_hour' })
+  const hit = await ui.find({ type: 'Button', key: 'open-five_hour' })
+  expect(chip?.props.variant).toBe('primary')
+  expect(chip?.props.label).toBe(hit?.props.label)
+  expect(await ui.find({ type: 'Button', key: 'chip-seven_day' })).toBeUndefined()
+  // Pill and percentage stay, laid over the white in tones readable on it, a copy of the figures in the flow.
+  expect((await ui.findAll({ type: 'Svg' })).filter((p: any) => p.props.alt === '5h 42%')).toHaveLength(2)
+  expect((await ui.findAll({ type: 'Text', text: '42%' })).map((x: any) => x.props.color)).toContain('#2e7d32')
+  const panel = (await ui.findAll({ type: 'Svg' })).find((p: any) => String(p.props.alt).startsWith('used'))
+  const source = String(panel?.props.source)
+  // A rule on top and a divider between each of the four columns.
+  expect(source.match(/<line /g)?.length).toBe(4)
+  // The used percentage carries the bar's color in the details too.
+  expect(source).toContain('class="v success" x="0" y="44">42%')
+  await ui.press({ key: 'open-cost' })
+  expect(await ui.find({ type: 'Button', key: 'chip-five_hour' })).toBeUndefined()
+  expect((await ui.find({ type: 'Button', key: 'open-cost' }))?.props.variant).toBe('primary')
+  await ui.unmount()
 })
