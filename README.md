@@ -38,6 +38,17 @@ claude plugin install usage-bar@claude-token-consumption-bar --scope user
 
 In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `louisamaury/claude-token-consumption-bar`, then **Add plugin**.
 
+### Keep the first version (0.1.0)
+
+The first band, without the details panel, stays available under the tag `v0.1.0`. Add the marketplace pinned to it instead, then install as above; updates keep you on that version:
+
+```
+claude plugin marketplace add louisamaury/claude-token-consumption-bar#v0.1.0
+claude plugin install usage-bar@claude-token-consumption-bar --scope user
+```
+
+Already on the latest version? Remove the marketplace first (`claude plugin marketplace remove claude-token-consumption-bar`), then run the two commands above.
+
 ## Uninstall
 
 From a shell:
