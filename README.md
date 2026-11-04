@@ -20,7 +20,7 @@ Requires a recent Claude Code: run `claude update` first.
 At the prompt of a Claude Code terminal session, run these two commands one after the other:
 
 ```
-/plugin marketplace add xendo3000/claude-token-consumption-bar
+/plugin marketplace add louisamaury/claude-token-consumption-bar
 ```
 
 ```
@@ -32,11 +32,11 @@ Pick the **user** scope so the band shows in every session, then start a new ses
 From a shell instead:
 
 ```
-claude plugin marketplace add xendo3000/claude-token-consumption-bar
+claude plugin marketplace add louisamaury/claude-token-consumption-bar
 claude plugin install usage-bar@claude-token-consumption-bar --scope user
 ```
 
-In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `xendo3000/claude-token-consumption-bar`, then **Add plugin**.
+In the desktop app: click **+** next to the prompt box, then **Plugins**, **Add marketplace** with `louisamaury/claude-token-consumption-bar`, then **Add plugin**.
 
 ## Uninstall
 

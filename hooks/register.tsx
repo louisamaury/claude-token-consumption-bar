@@ -18,6 +18,10 @@ const HOVER = 'subtle'
 // text, gaps and pill, so the chip hugs them with the Button's own margin, as around Review; its Box never shrinks, so
 // a label a little too wide only widens the chip, never cuts it.
 // shortcut: widths measured on the desktop app's band (a glyph ≈8.2px, a gap ≈8px, a no-break space ≈3.8px); re-measure if its font changes.
+// A Button's own margin overhangs the category's padding by 3.2px a side (measured): the label gives that back, so the
+// chip lines up exactly with its category, and the first and last ones with the edges of the band's rule.
+// shortcut: measured on the desktop app's Button style; re-measure if it changes.
+export const CHIP_TRIM = 6.4
 export const blank = (chars: number, gaps: number, px = 0) =>
   ' '.repeat(Math.max(1, Math.ceil((chars * 8.2 + gaps * 8 + px) / 3.8)))
 
@@ -51,24 +55,40 @@ const HEX: Record<string, string> = { suggestion: '#5769f7', success: '#4eba65',
 // The tones darkened to stay readable on the open category's white chip.
 const INK: Record<string, string> = { suggestion: '#3949ab', success: '#2e7d32', warning: '#a86400', error: '#c62828', text: '#191919' }
 
-// The details row as one SVG, after ponytail's band (MIT, DietrichGebert/ponytail): a 1px rule on top, 1px dividers
-// between columns, gray labels, white values, in the light or dark theme; a value with a tone takes the bar's color.
-const FONT = "-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif"
-const PANEL_STYLE = `.l,.s{fill:#87867f;font:12px ${FONT}}.v{fill:#1f1e1d;font:600 16px ${FONT}}.d{stroke:#1f1e1d;stroke-opacity:.12}.suggestion{fill:${INK.suggestion}}.success{fill:${INK.success}}.warning{fill:${INK.warning}}.error{fill:${INK.error}}@media (prefers-color-scheme:dark){.v{fill:#ecebe6}.d{stroke:#fff;stroke-opacity:.14}.suggestion{fill:${HEX.suggestion}}.success{fill:${HEX.success}}.warning{fill:${HEX.warning}}.error{fill:${HEX.error}}}`
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+// The details row as one SVG, so its rules are real 1px lines and its columns exact on every surface that draws it:
+// a rule along the top, one column per figure split by thin dividers, each a caption, the figure, and a note.
+// Colors live in CSS variables that the light or dark theme sets; a figure with a tone takes the bar's own color.
+const PANEL_H = 64
+const PANEL_INSET = 14
+const PANEL_CSS = [
+  `svg{--muted:#8a8984;--figure:#1f1e1d;--rule:rgba(0,0,0,.12);${Object.keys(HEX).map(k => `--${k}:${INK[k]}`).join(';')}}`,
+  `@media (prefers-color-scheme:dark){svg{--figure:#ecebe6;--rule:rgba(255,255,255,.14);${Object.keys(HEX).map(k => `--${k}:${HEX[k]}`).join(';')}}}`,
+  `text{font-family:system-ui,'Segoe UI',-apple-system,sans-serif}.cap,.note{fill:var(--muted);font-size:12px}.fig{fill:var(--figure);font-size:16px;font-weight:600}`,
+  ...Object.keys(HEX).map(k => `.fig.${k}{fill:var(--${k})}`),
+  `.rule{stroke:var(--rule)}`,
+].join('')
+const xml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 
 export const panelSvg = (cols: Col[], width = 720) => {
-  const height = 64
-  const colW = width / Math.max(1, cols.length)
-  let body = `<line class="d" x1="0" y1="0.5" x2="${width}" y2="0.5"/>`
-  cols.forEach((c, i) => {
-    const x = i * colW + (i === 0 ? 0 : 12)
-    const alert = c.tone ? ` ${c.tone}` : ''
-    if (i > 0) body += `<line class="d" x1="${i * colW}" y1="14" x2="${i * colW}" y2="${height - 2}"/>`
-    body += `<text class="l" x="${x}" y="24">${esc(c.label)}</text><text class="v${alert}" x="${x}" y="44">${esc(c.value)}</text>`
-    if (c.sub) body += `<text class="s" x="${x}" y="61">${esc(c.sub)}</text>`
-  })
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><style>${PANEL_STYLE}</style>${body}</svg>`
+  const step = width / Math.max(1, cols.length)
+  const column = (c: Col, i: number) => {
+    const x = i === 0 ? 0 : PANEL_INSET
+    return [
+      `<g transform="translate(${(i * step).toFixed(1)} 0)">`,
+      i === 0 ? '' : `<path class="rule" d="M0 13V${PANEL_H - 2}"/>`,
+      `<text class="cap" x="${x}" y="24">${xml(c.label)}</text>`,
+      `<text class="fig${c.tone ? ` ${c.tone}` : ''}" x="${x}" y="44">${xml(c.value)}</text>`,
+      c.sub ? `<text class="note" x="${x}" y="61">${xml(c.sub)}</text>` : '',
+      '</g>',
+    ].join('')
+  }
+  return [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${PANEL_H}" viewBox="0 0 ${width} ${PANEL_H}">`,
+    `<style>${PANEL_CSS}</style>`,
+    `<path class="rule" d="M0 0.5H${width}"/>`,
+    ...cols.map(column),
+    '</svg>',
+  ].join('')
 }
 const PILL_W = 64
 const PILL_H = 8
@@ -165,7 +185,7 @@ export const register: Register = on => {
     // Button with a blank label as wide as them is centered over the category at its natural size, so a press anywhere
     // on it, the pill included, lands, and its own rounded hover, the one Review shows, is the only one there. The open
     // category's white is a primary Button of that same label laid under the figures: one shape for hover and selection.
-    // As ponytail's row of Buttons: a thin vertical padding, the row about a Button tall.
+    // A thin vertical padding: the row about a Button tall, as a row of Buttons is.
     const PAD = { paddingX: 1, paddingY: 'xs' } as const
     const category = (key: string, label: string, children: unknown) => (
       <Box
@@ -175,12 +195,7 @@ export const register: Register = on => {
         alignItems="center"
         flexShrink={0}
       >
-        {children ??
-          (Svg && open === key ? (
-            <Button key={`open-${key}`} variant="primary" label={label} onPress={toggle(key)} />
-          ) : (
-            <Button key={`open-${key}`} plain label={label} onPress={toggle(key)} />
-          ))}
+        {children ?? <Button key={`open-${key}`} plain label={label} onPress={toggle(key)} />}
       </Box>
     )
 
@@ -192,29 +207,31 @@ export const register: Register = on => {
       </Box>
     )
 
+    // Every desktop category with a pill is built alike. The figures in the flow give it its size; a blank Button
+    // of that size lies over it. Open, a white Button of the same label covers them (the desktop paints positioned
+    // Boxes over the flow), so a copy in the white's tones is laid over it, with the same padding from the same edges:
+    // it lands exactly on them. Its pill is announced twice while open, the price of a sure width.
+    const chipped = (key: string, label: string, width: string, figures: (onWhite: boolean) => unknown[]) =>
+      category(key, label, [
+        ...figures(false),
+        open === key ? target('chip', <Button key={`chip-${key}`} variant="primary" label={width} onPress={toggle(key)} />) : null,
+        open === key ? (
+          <Box key="figures" position="absolute" top={0} left={0} right={0} bottom={0} {...PAD} gap={1} alignItems="center">
+            {figures(true)}
+          </Box>
+        ) : null,
+        target('hit', <Button key={`open-${key}`} plain label={width} onPress={toggle(key)} />),
+      ])
+
     // Label dim, bar + value carry the color: the eye lands on state, not on chrome.
     const meter = (key: string, label: string, pct: number, detail: string) => {
       if (Svg) {
-        // The figures in the flow give the category its size. Open, the white Button covers them (the desktop paints
-        // positioned Boxes over the flow), so a copy in the white's tones is laid over it, with the same padding from
-        // the same edges: it lands exactly on them. Its pill is announced twice while open, the price of a sure width.
-        const isOpen = open === key
-        const width = blank(label.length + `${pct}%`.length + detail.length, detail ? 3 : 2, PILL_W)
-        const figures = (onWhite: boolean) => [
+        const width = blank(label.length + `${pct}%`.length + detail.length, detail ? 3 : 2, PILL_W - CHIP_TRIM)
+        return chipped(key, label, width, onWhite => [
           <Text key="name" color={onWhite ? INK.text : undefined} dimColor={!onWhite}>{label}</Text>,
           <Svg key="pill" source={pill(pct, onWhite)} alt={`${label} ${pct}%`} width={PILL_W} height={PILL_H} />,
           <Text key="pct" tabular color={(onWhite ? INK : HEX)[tone(pct)]}>{`${pct}%`}</Text>,
           detail ? <Text key="detail" tabular color={onWhite ? INK.text : undefined} dimColor={!onWhite}>{detail}</Text> : null,
-        ]
-        return category(key, label, [
-          ...figures(false),
-          isOpen ? target('chip', <Button key={`chip-${key}`} variant="primary" label={width} onPress={toggle(key)} />) : null,
-          isOpen ? (
-            <Box key="figures" position="absolute" top={0} left={0} right={0} bottom={0} {...PAD} gap={1} alignItems="center">
-              {figures(true)}
-            </Box>
-          ) : null,
-          target('hit', <Button key={`open-${key}`} plain label={width} onPress={toggle(key)} />),
         ])
       }
       const b = bar(pct)
@@ -229,11 +246,23 @@ export const register: Register = on => {
       ))
     }
 
+    // The price has no pill, so on the desktop it is a real Button carrying its figure: its chip is
+    // the text's own size, no estimate, and with no side padding it ends exactly on the band's rule; open, the white
+    // primary Button, its text in that Button's own dark.
+    const price = (label: string) =>
+      Svg ? (
+        <Box key="cost" paddingY={PAD.paddingY} alignItems="center" flexShrink={0}>
+          <Button key="open-cost" {...(open === 'cost' ? { variant: 'primary' as const } : { plain: true as const })} label={label} onPress={toggle('cost')} />
+        </Box>
+      ) : (
+        category('cost', label, null)
+      )
+
     const ctx = s.context
     const parts = [
       ...s.rateLimits.map((r: RateLimit) => current(r, now)).map(r => meter(r.kind, LABELS[r.kind] ?? r.kind, r.percentUsed, resetIn(r.resetsAt, now))),
       meter('ctx', 'Context', ctx.percent ?? 0, ''),
-      ...(s.cost ? [category('cost', `≈$${s.cost.usd.toFixed(2)}`, null)] : []),
+      ...(s.cost ? [price(`≈$${s.cost.usd.toFixed(2)}`)] : []),
     ]
 
     // Blocks spread over the full width; when it runs out a whole block wraps, never a piece of one.
@@ -273,7 +302,7 @@ export const register: Register = on => {
   })
 }
 
-// The detail panel of one category: a few labelled figures, as ponytail's band lays them out.
+// The detail panel of one category: a few labelled figures, one column each.
 async function details($: EngineInterface, s: Snapshot, key: string, now: number): Promise<Col[]> {
   const found = s.rateLimits.find(x => x.kind === key)
   if (found) {

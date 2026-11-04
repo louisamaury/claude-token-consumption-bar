@@ -1,5 +1,5 @@
 {
   "name": "claude-token-consumption-bar",
-  "owner": { "name": "xendo3000" },
+  "owner": { "name": "louisamaury" },
   "plugins": [{ "name": "usage-bar", "source": "./" }]
 }

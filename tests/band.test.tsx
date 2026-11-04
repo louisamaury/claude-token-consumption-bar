@@ -136,7 +136,7 @@ test('on the desktop the pill and colored figures stay, and a press anywhere on 
   await ui.unmount()
 })
 
-test('on the desktop the open category turns white and the details have the ponytail dividers', async ($, on) => {
+test('on the desktop the open category turns white and the details have column dividers', async ($, on) => {
   engine(on)
   await $.session.start({ cwd: '/', surface: 'desktop', isInteractive: true })
   await $.session.measure({ context: { window: 200_000, tokens: 0, percent: 0 }, rateLimits: LIMITS, cost: { usd: 1.5 }, changed: ['context', 'rateLimits', 'cost'] })
@@ -154,11 +154,14 @@ test('on the desktop the open category turns white and the details have the pony
   const panel = (await ui.findAll({ type: 'Svg' })).find((p: any) => String(p.props.alt).startsWith('used'))
   const source = String(panel?.props.source)
   // A rule on top and a divider between each of the four columns.
-  expect(source.match(/<line /g)?.length).toBe(4)
+  expect(source.match(/class="rule"/g)?.length).toBe(4)
   // The used percentage carries the bar's color in the details too.
-  expect(source).toContain('class="v success" x="0" y="44">42%')
+  expect(source).toContain('class="fig success" x="0" y="44">42%')
   await ui.press({ key: 'open-cost' })
   expect(await ui.find({ type: 'Button', key: 'chip-five_hour' })).toBeUndefined()
-  expect((await ui.find({ type: 'Button', key: 'open-cost' }))?.props.variant).toBe('primary')
+  // The price is a real Button carrying its figure, sized by its text alone: open, the white primary one.
+  const cost = await ui.find({ type: 'Button', key: 'open-cost' })
+  expect([cost?.props.label, cost?.props.variant]).toEqual(['≈$1.50', 'primary'])
+  expect(await ui.find({ type: 'Button', key: 'chip-cost' })).toBeUndefined()
   await ui.unmount()
 })

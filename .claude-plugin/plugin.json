@@ -1,1 +1,1 @@
-{ "name": "usage-bar", "version": "0.2.1", "description": "Band above the prompt: 5h and 7-day plan usage, context fill and session cost", "types": "./types/index.d.ts", "license": "MIT", "author": { "name": "xendo3000" } }
+{ "name": "usage-bar", "version": "0.2.1", "description": "Band above the prompt: 5h and 7-day plan usage, context fill and session cost", "types": "./types/index.d.ts", "license": "MIT", "author": { "name": "louisamaury" } }
